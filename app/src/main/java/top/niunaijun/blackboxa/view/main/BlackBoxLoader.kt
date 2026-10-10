@@ -21,9 +21,9 @@ class BlackBoxLoader {
     private var mShowShortcutPermissionDialog by AppSharedPreferenceDelegate(App.getContext(), true)
 
     
-    private var mUseVpnNetwork by AppSharedPreferenceDelegate(App.getContext(), false)
+    
 
-    private var mDisableFlagSecure by AppSharedPreferenceDelegate(App.getContext(), false)
+    
 
     fun hideRoot(): Boolean {
         return try {
@@ -42,22 +42,6 @@ class BlackBoxLoader {
         }
     }
 
-    fun disableFlagSecure(): Boolean {
-        return try {
-            mDisableFlagSecure
-        } catch (e: Exception) {
-            Log.e(TAG, "Error getting disableFlagSecure: ${e.message}")
-            false
-        }
-    }
-
-    fun invalidDisableFlagSecure(disable: Boolean) {
-        try {
-            this.mDisableFlagSecure = disable
-        } catch (e: Exception) {
-            Log.e(TAG, "Error setting disableFlagSecure: ${e.message}")
-        }
-    }
 
     fun daemonEnable(): Boolean {
         return try {
@@ -93,22 +77,7 @@ class BlackBoxLoader {
         }
     }
 
-    fun useVpnNetwork(): Boolean {
-        return try {
-            mUseVpnNetwork
-        } catch (e: Exception) {
-            Log.e(TAG, "Error getting useVpnNetwork: ${e.message}")
-            false
-        }
-    }
 
-    fun invalidUseVpnNetwork(enable: Boolean) {
-        try {
-            this.mUseVpnNetwork = enable
-        } catch (e: Exception) {
-            Log.e(TAG, "Error setting useVpnNetwork: ${e.message}")
-        }
-    }
 
     fun getBlackBoxCore(): BlackBoxCore {
         return try {
@@ -253,24 +222,7 @@ class BlackBoxLoader {
                                     }
                                 }
 
-                                override fun isUseVpnNetwork(): Boolean {
-                                    return try {
-                                        mUseVpnNetwork
-                                    } catch (e: Exception) {
-                                        Log.e(TAG, "Error checking useVpnNetwork: ${e.message}")
-                                        false
-                                    }
-                                }
-
-                                override fun isDisableFlagSecure(): Boolean {
-                                    return try {
-                                        mDisableFlagSecure
-                                    } catch (e: Exception) {
-                                        Log.e(TAG, "Error checking disableFlagSecure: ${e.message}")
-                                        false
-                                    }
-                                }
-
+                                                               
                                 override fun requestInstallPackage(
                                         file: File?,
                                         userId: Int
