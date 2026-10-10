@@ -59,7 +59,7 @@ import top.niunaijun.blackbox.proxy.ProxyManifest;
 import top.niunaijun.blackbox.utils.FileUtils;
 import top.niunaijun.blackbox.utils.ShellUtils;
 import top.niunaijun.blackbox.utils.Slog;
-import top.niunaijun.blackbox.utils.SimpleCrashFix;
+
 import top.niunaijun.blackbox.utils.compat.BuildCompat;
 import top.niunaijun.blackbox.utils.compat.BundleCompat;
 
@@ -70,7 +70,7 @@ import top.niunaijun.blackbox.utils.DexCrashPrevention;
 import top.niunaijun.blackbox.utils.NativeCrashPrevention;
 import top.niunaijun.blackbox.utils.CrashMonitor;
 import top.niunaijun.blackbox.utils.StoragePermissionHelper;
-import top.niunaijun.blackbox.utils.LogSender;
+
 
 
 
@@ -86,8 +86,8 @@ public class BlackBoxCore extends ClientConfiguration {
     static {
         try {
             
-            SimpleCrashFix.installSimpleFix();
-            Slog.d(TAG, "Simple crash fix installed at class loading time");
+ 
+ 
             
             StackTraceFilter.install();
             Slog.d(TAG, "Stack trace filter installed at class loading time");
@@ -104,7 +104,7 @@ public class BlackBoxCore extends ClientConfiguration {
             CrashMonitor.initialize();
             Slog.d(TAG, "Comprehensive crash monitoring initialized at class loading time");
         } catch (Exception e) {
-            Slog.w(TAG, "Failed to install simple crash fix or stack trace filter at class loading: " + e.getMessage());
+            Slog.w(TAG, "Failed to install crash prevention at class loading: " + e.getMessage());
         }
     }
     private ProcessType mProcessType;
@@ -857,10 +857,11 @@ public class BlackBoxCore extends ClientConfiguration {
         
         initNotificationManager();
 
+        
         String processName = getProcessName(getContext());
         if (processName.equals(BlackBoxCore.getHostPkg())) {
             mProcessType = ProcessType.Main;
-            startLogcat();
+            
         } else if (processName.endsWith(getContext().getString(R.string.black_box_service_name))) {
             mProcessType = ProcessType.Server;
         } else {
@@ -1277,143 +1278,6 @@ public class BlackBoxCore extends ClientConfiguration {
         return mClientConfiguration.requestInstallPackage(file, userId);
     }
 
-    private void startLogcat() {
-        new Thread(() -> {
-            File logFile = null;
-            Context context = getContext();
-            String fileName = context.getPackageName() + "_logcat.txt";
-            boolean useMediaStore = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
-            
-            
-            logDeviceInfo();
-            
-            try {
-                if (useMediaStore) {
-                    
-                    android.content.ContentValues values = new android.content.ContentValues();
-                    values.put(android.provider.MediaStore.Downloads.DISPLAY_NAME, fileName);
-                    values.put(android.provider.MediaStore.Downloads.MIME_TYPE, "text/plain");
-                    values.put(android.provider.MediaStore.Downloads.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS + "/logs");
-                    android.net.Uri uri = context.getContentResolver().insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
-                    if (uri != null) {
-                        try (java.io.OutputStream out = context.getContentResolver().openOutputStream(uri)) {
-                            
-                            ShellUtils.execCommand("logcat -c", false);
-                            java.lang.Process process = Runtime.getRuntime().exec("logcat");
-                            try (java.io.InputStream in = process.getInputStream()) {
-                                byte[] buffer = new byte[4096];
-                                int len;
-                                while ((len = in.read(buffer)) != -1) {
-                                    out.write(buffer, 0, len);
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    
-                    File docuentsdir = new File(context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), "logs");
-                    if (!docuentsdir.exists()) {
-                        docuentsdir.mkdirs();
-                    }
-                    logFile = new File(docuentsdir, fileName);
-                    FileUtils.deleteDir(logFile);
-                    ShellUtils.execCommand("logcat -c", false);
-                    ShellUtils.execCommand("logcat -f " + logFile.getAbsolutePath(), false);
-                }
-            } catch (Exception e) {
-                Slog.e(TAG, "Failed to save logcat: " + e.getMessage());
-            }
-        }).start();
-    }
-
-    
-    private void logDeviceInfo() {
-        try {
-            Slog.i(TAG, "╔══════════════════════════════════════════════════════════════╗");
-            Slog.i(TAG, "║                    DEVICE INFORMATION                        ║");
-            Slog.i(TAG, "╠══════════════════════════════════════════════════════════════╣");
-            
-            
-            Slog.i(TAG, "║ Android Version: " + Build.VERSION.RELEASE);
-            Slog.i(TAG, "║ SDK Level: " + Build.VERSION.SDK_INT);
-            Slog.i(TAG, "║ Build ID: " + Build.ID);
-            Slog.i(TAG, "║ Build Display: " + Build.DISPLAY);
-            
-            
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                Slog.i(TAG, "║ Security Patch: " + Build.VERSION.SECURITY_PATCH);
-            }
-            
-            
-            Slog.i(TAG, "╠══════════════════════════════════════════════════════════════╣");
-            Slog.i(TAG, "║ Manufacturer: " + Build.MANUFACTURER);
-            Slog.i(TAG, "║ Brand: " + Build.BRAND);
-            Slog.i(TAG, "║ Model: " + Build.MODEL);
-            Slog.i(TAG, "║ Device: " + Build.DEVICE);
-            Slog.i(TAG, "║ Product: " + Build.PRODUCT);
-            Slog.i(TAG, "║ Board: " + Build.BOARD);
-            Slog.i(TAG, "║ Hardware: " + Build.HARDWARE);
-            
-            
-            Slog.i(TAG, "╠══════════════════════════════════════════════════════════════╣");
-            Slog.i(TAG, "║ Supported ABIs: " + String.join(", ", Build.SUPPORTED_ABIS));
-            if (Build.SUPPORTED_32_BIT_ABIS.length > 0) {
-                Slog.i(TAG, "║ 32-bit ABIs: " + String.join(", ", Build.SUPPORTED_32_BIT_ABIS));
-            }
-            if (Build.SUPPORTED_64_BIT_ABIS.length > 0) {
-                Slog.i(TAG, "║ 64-bit ABIs: " + String.join(", ", Build.SUPPORTED_64_BIT_ABIS));
-            }
-            
-            
-            Slog.i(TAG, "╠══════════════════════════════════════════════════════════════╣");
-            Slog.i(TAG, "║ Fingerprint: " + Build.FINGERPRINT);
-            Slog.i(TAG, "║ Type: " + Build.TYPE);
-            Slog.i(TAG, "║ Tags: " + Build.TAGS);
-            
-            
-            try {
-                Runtime runtime = Runtime.getRuntime();
-                long maxMem = runtime.maxMemory() / (1024 * 1024);
-                long totalMem = runtime.totalMemory() / (1024 * 1024);
-                long freeMem = runtime.freeMemory() / (1024 * 1024);
-                Slog.i(TAG, "╠══════════════════════════════════════════════════════════════╣");
-                Slog.i(TAG, "║ Max Heap: " + maxMem + " MB");
-                Slog.i(TAG, "║ Total Heap: " + totalMem + " MB");
-                Slog.i(TAG, "║ Free Heap: " + freeMem + " MB");
-                Slog.i(TAG, "║ Used Heap: " + (totalMem - freeMem) + " MB");
-            } catch (Exception e) {
-                Slog.w(TAG, "║ Memory info unavailable: " + e.getMessage());
-            }
-            
-            
-            try {
-                Context context = getContext();
-                if (context != null) {
-                    Slog.i(TAG, "╠══════════════════════════════════════════════════════════════╣");
-                    Slog.i(TAG, "║ Package: " + context.getPackageName());
-                    android.content.pm.PackageInfo pInfo = context.getPackageManager()
-                            .getPackageInfo(context.getPackageName(), 0);
-                    Slog.i(TAG, "║ App Version: " + pInfo.versionName);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                        Slog.i(TAG, "║ Version Code: " + pInfo.getLongVersionCode());
-                    } else {
-                        Slog.i(TAG, "║ Version Code: " + pInfo.versionCode);
-                    }
-                }
-            } catch (Exception e) {
-                Slog.w(TAG, "║ App info unavailable: " + e.getMessage());
-            }
-            
-            
-            Slog.i(TAG, "╠══════════════════════════════════════════════════════════════╣");
-            Slog.i(TAG, "║ Timestamp: " + new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z", 
-                    java.util.Locale.getDefault()).format(new java.util.Date()));
-            Slog.i(TAG, "╚══════════════════════════════════════════════════════════════╝");
-            
-        } catch (Exception e) {
-            Slog.e(TAG, "Failed to log device info: " + e.getMessage());
-        }
-    }
 
     @SuppressWarnings("deprecation")
     private static String getProcessName(Context context) {
@@ -1631,7 +1495,7 @@ public class BlackBoxCore extends ClientConfiguration {
     
     public static void installSystemHooks() {
         try {
-            SimpleCrashFix.installSimpleFix();
+  
             Slog.d(TAG, "System hooks installed successfully");
         } catch (Exception e) {
             Slog.e(TAG, "Failed to install system hooks", e);
@@ -2059,209 +1923,3 @@ public class BlackBoxCore extends ClientConfiguration {
             tryAlternativeServerStartupMethods();
         }
     }
-    public interface LogSendListener {
-        void onSuccess();
-        void onFailure(String error);
-    }
-
-    public void sendLogs(String caption, boolean async) {
-        sendLogs(caption, async, null);
-    }
-
-    public void sendLogs(String caption, boolean async, LogSendListener listener) {
-        String chatId = mClientConfiguration != null ? mClientConfiguration.getLogSenderChatId() : null;
-        if (chatId == null || chatId.isEmpty()) return;
-
-        Runnable sendTask = () -> {
-            try {
-                
-                File cacheDir = getContext().getCacheDir();
-                File tempLog = File.createTempFile("crash_log_", ".txt", cacheDir);
-
-
-                String deviceInfo = getDeviceInfoString();
-
-
-                try (java.io.FileOutputStream fos = new java.io.FileOutputStream(tempLog)) {
-                    
-                    String header = "Caption: " + caption + "\n\n" + deviceInfo + "\n\n--- LOGCAT ---\n";
-                    fos.write(header.getBytes("UTF-8"));
-                    
-                    
-                    java.lang.Process process = Runtime.getRuntime().exec("logcat -d -v threadtime");
-                    try (java.io.InputStream in = process.getInputStream()) {
-                        byte[] buffer = new byte[8192];
-                        int len;
-                        while ((len = in.read(buffer)) != -1) {
-                            fos.write(buffer, 0, len);
-                        }
-                    }
-                    fos.flush();
-                }
-                
-                
-                String error = LogSender.send(chatId, tempLog, deviceInfo);
-                if (error != null) {
-                    Slog.e(TAG, "Log upload failed: " + error);
-                    
-                    new Handler(Looper.getMainLooper()).post(() -> {
-                         try {
-                             android.widget.Toast.makeText(getContext(), "Log Upload Failed: " + error, android.widget.Toast.LENGTH_LONG).show();
-                         } catch (Exception e) {}
-                        if (listener != null) {
-                            listener.onFailure(error);
-                        }
-                    });
-                    
-                    
-                    if (getContext() != null) {
-                        NotificationManager nm = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
-                        if (nm != null) {
-                            String channelId = getContext().getPackageName() + ".blackbox_core";
-                            Notification.Builder builder;
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                builder = new Notification.Builder(getContext(), channelId);
-                            } else {
-                                builder = new Notification.Builder(getContext());
-                            }
-                            
-                            builder.setSmallIcon(android.R.drawable.stat_notify_error)
-                                   .setContentTitle("BlackBox Log Upload Failed")
-                                   .setContentText(error)
-                                   .setAutoCancel(true);
-                                   
-                            nm.notify(9999, builder.build());
-                        }
-                    }
-                } else {
-                    
-                     new Handler(Looper.getMainLooper()).post(() -> {
-                         try {
-                             android.widget.Toast.makeText(getContext(), "Log Upload Success", android.widget.Toast.LENGTH_SHORT).show();
-                         } catch (Exception e) {}
-                         if (listener != null) {
-                             listener.onSuccess();
-                         }
-                     });
-
-                    
-                    if (getContext() != null) {
-                        NotificationManager nm = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
-                        if (nm != null) {
-                            String channelId = getContext().getPackageName() + ".blackbox_core";
-                            Notification.Builder builder;
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                builder = new Notification.Builder(getContext(), channelId);
-                            } else {
-                                builder = new Notification.Builder(getContext());
-                            }
-
-                            builder.setSmallIcon(android.R.drawable.stat_sys_upload_done)
-                                   .setContentTitle("BlackBox Log Upload")
-                                   .setContentText("Logs sent successfully")
-                                   .setAutoCancel(true);
-
-                            nm.notify(9999, builder.build());
-                        }
-                    }
-                }
-                
-                
-                tempLog.delete();
-            } catch (Exception e) {
-                Slog.e(TAG, "Failed to send logs: " + e.getMessage());
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    if (listener != null) {
-                        listener.onFailure(e.getMessage());
-                    }
-                });
-            }
-        };
-
-        if (async) {
-            new Thread(sendTask).start();
-        } else {
-            sendTask.run();
-        }
-    }
-
-    private String getDeviceInfoString() {
-        StringBuilder sb = new StringBuilder();
-        try {
-            sb.append("DEVICE INFORMATION\n");
-            sb.append("------------------\n");
-            
-            
-            sb.append("Android Version: ").append(Build.VERSION.RELEASE).append("\n");
-            sb.append("SDK Level: ").append(Build.VERSION.SDK_INT).append("\n");
-            sb.append("Build ID: ").append(Build.ID).append("\n");
-            sb.append("Build Display: ").append(Build.DISPLAY).append("\n");
-            
-            
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                sb.append("Security Patch: ").append(Build.VERSION.SECURITY_PATCH).append("\n");
-            }
-            
-            
-            sb.append("Manufacturer: ").append(Build.MANUFACTURER).append("\n");
-            sb.append("Brand: ").append(Build.BRAND).append("\n");
-            sb.append("Model: ").append(Build.MODEL).append("\n");
-            sb.append("Device: ").append(Build.DEVICE).append("\n");
-            sb.append("Product: ").append(Build.PRODUCT).append("\n");
-            sb.append("Board: ").append(Build.BOARD).append("\n");
-            sb.append("Hardware: ").append(Build.HARDWARE).append("\n");
-            
-            
-            sb.append("Supported ABIs: ").append(String.join(", ", Build.SUPPORTED_ABIS)).append("\n");
-            if (Build.SUPPORTED_32_BIT_ABIS.length > 0) {
-                sb.append("32-bit ABIs: ").append(String.join(", ", Build.SUPPORTED_32_BIT_ABIS)).append("\n");
-            }
-            if (Build.SUPPORTED_64_BIT_ABIS.length > 0) {
-                sb.append("64-bit ABIs: ").append(String.join(", ", Build.SUPPORTED_64_BIT_ABIS)).append("\n");
-            }
-            
-
-
-
-            
-            try {
-                Runtime runtime = Runtime.getRuntime();
-                long maxMem = runtime.maxMemory() / (1024 * 1024);
-                long totalMem = runtime.totalMemory() / (1024 * 1024);
-                long freeMem = runtime.freeMemory() / (1024 * 1024);
-                sb.append("Max Heap: ").append(maxMem).append(" MB\n");
-                sb.append("Total Heap: ").append(totalMem).append(" MB\n");
-                sb.append("Free Heap: ").append(freeMem).append(" MB\n");
-                sb.append("Used Heap: ").append(totalMem - freeMem).append(" MB\n");
-            } catch (Exception e) {
-                sb.append("Memory info unavailable: ").append(e.getMessage()).append("\n");
-            }
-            
-            
-            try {
-                Context context = getContext();
-                if (context != null) {
-                    sb.append("Package: ").append(context.getPackageName()).append("\n");
-                    android.content.pm.PackageInfo pInfo = context.getPackageManager()
-                            .getPackageInfo(context.getPackageName(), 0);
-                    sb.append("App Version: ").append(pInfo.versionName).append("\n");
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                        sb.append("Version Code: ").append(pInfo.getLongVersionCode()).append("\n");
-                    } else {
-                        sb.append("Version Code: ").append(pInfo.versionCode).append("\n");
-                    }
-                }
-            } catch (Exception e) {
-                sb.append("App info unavailable: ").append(e.getMessage()).append("\n");
-            }
-            
-            
-            sb.append("Timestamp: ").append(new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z", 
-                    java.util.Locale.getDefault()).format(new java.util.Date())).append("\n");
-            
-        } catch (Exception e) {
-            sb.append("Failed to build device info: ").append(e.getMessage());
-        }
-        return sb.toString();
-    }
-}
