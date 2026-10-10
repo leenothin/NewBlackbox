@@ -2,8 +2,8 @@ name: Build APK
 
 on:
   push:
-    branches: [ "**" ]        # 任意分支推送都触发
-  workflow_dispatch:           # 支持在网页上手动点按钮运行
+    branches: [ "**" ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -27,6 +27,12 @@ jobs:
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
 
+      - name: Show environment
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls "$ANDROID_HOME/ndk" || true
+          java -version
+
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
@@ -34,9 +40,10 @@ jobs:
         run: ./gradlew :app:assembleDebug --stacktrace
 
       - name: Upload Debug APK
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: BlackBox-debug-apk
           path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
