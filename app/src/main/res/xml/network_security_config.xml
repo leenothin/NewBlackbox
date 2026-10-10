@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Hardened: cleartext HTTP denied by default. Add an explicit
+     <domain-config> exception below if a sandboxed app truly needs plain HTTP. -->
 <network-security-config>
-    <base-config cleartextTrafficPermitted="true" />
+    <base-config cleartextTrafficPermitted="false" />
 </network-security-config>
