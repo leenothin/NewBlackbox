@@ -21,7 +21,6 @@ import top.niunaijun.blackboxa.util.Resolution
 import top.niunaijun.blackboxa.util.inflate
 import top.niunaijun.blackboxa.view.apps.AppsFragment
 import top.niunaijun.blackboxa.view.base.LoadingActivity
-import top.niunaijun.blackboxa.view.fake.FakeManagerActivity
 import top.niunaijun.blackboxa.view.list.ListActivity
 import top.niunaijun.blackboxa.view.setting.SettingActivity
 
@@ -381,12 +380,6 @@ class MainActivity : LoadingActivity() {
                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/newblackboxa"))
                     startActivity(intent)
                 }
-                R.id.fake_location -> {
-                    
-                    val intent = Intent(this, FakeManagerActivity::class.java)
-                    intent.putExtra("userID", 0)
-                    startActivity(intent)
-                }
             }
 
             return true
@@ -395,3 +388,4 @@ class MainActivity : LoadingActivity() {
             return false
         }
     }
+}
