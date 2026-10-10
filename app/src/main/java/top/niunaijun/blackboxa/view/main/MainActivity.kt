@@ -3,7 +3,6 @@ package top.niunaijun.blackboxa.view.main
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
@@ -22,7 +21,7 @@ import top.niunaijun.blackboxa.util.Resolution
 import top.niunaijun.blackboxa.util.inflate
 import top.niunaijun.blackboxa.view.apps.AppsFragment
 import top.niunaijun.blackboxa.view.base.LoadingActivity
-
+import top.niunaijun.blackboxa.view.fake.FakeManagerActivity
 import top.niunaijun.blackboxa.view.list.ListActivity
 import top.niunaijun.blackboxa.view.setting.SettingActivity
 
@@ -39,7 +38,6 @@ class MainActivity : LoadingActivity() {
     companion object {
         private const val TAG = "MainActivity"
         private const val STORAGE_PERMISSION_REQUEST_CODE = 1001
-        
 
         fun start(context: Context) {
             val intent = Intent(context, MainActivity::class.java)
@@ -65,9 +63,6 @@ class MainActivity : LoadingActivity() {
 
             
             checkStoragePermission()
-
-            
-            
 
             try {
                 BlackBoxCore.get().onAfterMainActivityOnCreate(this)
@@ -201,11 +196,6 @@ class MainActivity : LoadingActivity() {
                     Log.e(TAG, "Error handling storage permission result: ${e.message}")
                 }
             }
-
-    
-    
-
-    
 
     private fun showErrorDialog(message: String) {
         try {
@@ -391,6 +381,12 @@ class MainActivity : LoadingActivity() {
                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/newblackboxa"))
                     startActivity(intent)
                 }
+                R.id.fake_location -> {
+                    
+                    val intent = Intent(this, FakeManagerActivity::class.java)
+                    intent.putExtra("userID", 0)
+                    startActivity(intent)
+                }
             }
 
             return true
@@ -399,4 +395,3 @@ class MainActivity : LoadingActivity() {
             return false
         }
     }
-}
