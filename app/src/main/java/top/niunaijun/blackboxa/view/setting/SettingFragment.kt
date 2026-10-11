@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 
+import top.niunaijun.blackbox.BlackBoxCore
 import top.niunaijun.blackboxa.R
 import top.niunaijun.blackboxa.app.AppManager
 import top.niunaijun.blackboxa.util.toast
@@ -29,22 +30,6 @@ class SettingFragment : PreferenceFragmentCompat() {
             daemonPreference.setDefaultValue(mDaemonEnable)
             daemonPreference
         }
-
-        invalidHideState {
-            val vpnPreference: Preference = (findPreference("use_vpn_network")!!)
-            val mUseVpnNetwork = AppManager.mBlackBoxLoader.useVpnNetwork()
-            vpnPreference.setDefaultValue(mUseVpnNetwork)
-            vpnPreference
-        }
-
-        invalidHideState {
-            val disableFlagSecurePreference: Preference = (findPreference("disable_flag_secure")!!)
-            val mDisableFlagSecure = AppManager.mBlackBoxLoader.disableFlagSecure()
-            disableFlagSecurePreference.setDefaultValue(mDisableFlagSecure)
-            disableFlagSecurePreference
-        }
-
-        
     }
 
     private fun initGms() {
@@ -73,12 +58,6 @@ class SettingFragment : PreferenceFragmentCompat() {
                 }
                 "daemon_enable" -> {
                     AppManager.mBlackBoxLoader.invalidDaemonEnable(tmpHide)
-                }
-                "use_vpn_network" -> {
-                    AppManager.mBlackBoxLoader.invalidUseVpnNetwork(tmpHide)
-                }
-                "disable_flag_secure" -> {
-                    AppManager.mBlackBoxLoader.invalidDisableFlagSecure(tmpHide)
                 }
             }
 
