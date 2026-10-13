@@ -1,4 +1,4 @@
-name: Build APK
+name: Build Release APK
 
 on:
   push:
@@ -30,17 +30,56 @@ jobs:
           ls "$ANDROID_HOME/platforms" || true
           java -version
 
+      - name: Ensure debug keystore exists
+        run: |
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            echo "debug.keystore not found, generating..."
+            mkdir -p "$HOME/.android"
+            keytool -genkeypair -v \
+              -keystore "$HOME/.android/debug.keystore" \
+              -storepass android -keypass android \
+              -alias androiddebugkey \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          else
+            echo "debug.keystore already exists"
+          fi
+
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
-      - name: Build Debug APK
-        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
+      - name: Build Release APK
+        run: ./gradlew :app:assembleRelease --stacktrace --no-daemon
 
-      - name: Upload Debug APK
+      - name: Verify APK signature
+        if: always()
+        run: |
+          echo "--- release outputs ---"
+          ls -lh app/build/outputs/apk/release/ || true
+          APK=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
+          if [ -n "$APK" ]; then
+            echo "--- verifying: $APK ---"
+            BT=$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)
+            echo "using build-tools $BT"
+            "$ANDROID_HOME/build-tools/$BT/apksigner" verify --print-certs "$APK" || true
+          else
+            echo "no apk found"
+          fi
+
+      - name: Upload Release APK
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: BlackBox-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: BlackBox-release-apk
+          path: app/build/outputs/apk/release/*.apk
           if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload R8 mapping (for debugging crashes)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: BlackBox-release-mapping
+          path: app/build/outputs/mapping/release/mapping.txt
+          if-no-files-found: ignore
           retention-days: 14
