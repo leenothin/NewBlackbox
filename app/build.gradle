@@ -9,7 +9,7 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
     ndkVersion = "29.0.14206865"
     defaultConfig {
-        applicationId "top.niunaijun.blackbox"
+        applicationId "top.neyes.blackboxfork"
         minSdk rootProject.ext.minSdk
         targetSdk rootProject.ext.targetSdkVersion
         versionCode rootProject.ext.versionCode
